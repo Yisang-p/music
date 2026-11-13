@@ -1,0 +1,375 @@
+
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Music Player</title>
+
+<style>
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: linear-gradient(135deg, #101025, #25254d);
+    color: white;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}
+
+.player {
+    width: 100%;
+    max-width: 850px;
+    background: #19192e;
+    border-radius: 22px;
+    padding: 25px;
+    box-shadow: 0 10px 40px #0008;
+}
+
+h1 {
+    text-align: center;
+    color: #9b8cff;
+}
+
+.content {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 25px;
+}
+
+.cover {
+    width: 100%;
+    aspect-ratio: 1;
+    background: linear-gradient(135deg, #7865ff, #e05dff);
+    border-radius: 18px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 90px;
+}
+
+.info {
+    text-align: center;
+}
+
+.info h2 {
+    margin-bottom: 5px;
+}
+
+.info p {
+    color: #aaa;
+}
+
+button {
+    background: #8068ff;
+    color: white;
+    border: none;
+    padding: 12px 18px;
+    margin: 5px;
+    border-radius: 25px;
+    cursor: pointer;
+}
+
+button:hover {
+    background: #a18fff;
+}
+
+.controls {
+    text-align: center;
+    margin-top: 20px;
+}
+
+input[type="range"] {
+    width: 100%;
+    accent-color: #917aff;
+}
+
+.time {
+    display: flex;
+    justify-content: space-between;
+    color: #aaa;
+    font-size: 12px;
+}
+
+.lyrics {
+    height: 300px;
+    overflow-y: auto;
+    text-align: center;
+    padding: 15px;
+    background: #111122;
+    border-radius: 15px;
+    scroll-behavior: smooth;
+}
+
+.lyric {
+    padding: 13px 5px;
+    color: #777;
+    font-size: 16px;
+    transition: 0.3s;
+}
+
+.lyric.active {
+    color: #b5a6ff;
+    font-size: 20px;
+    font-weight: bold;
+    text-shadow: 0 0 15px #8068ff;
+}
+
+.upload {
+    margin-top: 20px;
+    text-align: center;
+}
+
+input[type="file"] {
+    max-width: 100%;
+    margin: 10px;
+}
+
+@media(max-width: 650px) {
+    .content {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<div class="player">
+
+<h1>♫ MY MUSIC PLAYER</h1>
+
+<div class="content">
+
+<div>
+    <div class="cover">🎧</div>
+
+    <div class="info">
+        <h2 id="title">Belum ada lagu</h2>
+        <p id="artist">Upload musik untuk memulai</p>
+    </div>
+
+    <div class="controls">
+        <button onclick="audio.currentTime=0">⏮</button>
+        <button onclick="audio.paused ? audio.play() : audio.pause()"
+        id="playBtn">▶ PLAY</button>
+        <button onclick="audio.currentTime=audio.duration || 0">⏭</button>
+    </div>
+
+    <audio id="audio"></audio>
+
+    <div class="time">
+        <span id="current">0:00</span>
+        <span id="duration">0:00</span>
+    </div>
+
+    <input type="range" id="progress"
+    min="0" max="100" value="0">
+
+    <p>🔊 Volume</p>
+    <input type="range" id="volume"
+    min="0" max="1" step="0.01" value="1">
+</div>
+
+<div>
+    <h2 style="text-align:center">🎤 LIVE LYRICS</h2>
+    <div class="lyrics" id="lyrics">
+        <p>Upload file musik dan lirik untuk memulai.</p>
+    </div>
+</div>
+
+</div>
+
+<div class="upload">
+    <h3>📂 Upload Musik</h3>
+    <input type="file" id="musicFile" accept="audio/*">
+
+    <h3>📝 Upload Lirik (.LRC atau .TXT)</h3>
+    <input type="file" id="lyricFile"
+    accept=".lrc,.txt">
+</div>
+
+</div>
+
+<script>
+const audio = document.getElementById("audio");
+const progress = document.getElementById("progress");
+const lyricsBox = document.getElementById("lyrics");
+
+let lyricData = [];
+let musicURL = null;
+
+function formatTime(seconds) {
+    if (!Number.isFinite(seconds)) return "0:00";
+    let min = Math.floor(seconds / 60);
+    let sec = Math.floor(seconds % 60);
+    return min + ":" + String(sec).padStart(2,"0");
+}
+
+// Upload musik
+document.getElementById("musicFile")
+.addEventListener("change", function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (musicURL) URL.revokeObjectURL(musicURL);
+    musicURL = URL.createObjectURL(file);
+
+    audio.src = musicURL;
+    document.getElementById("title").textContent =
+        file.name.replace(/\.[^/.]+$/, "");
+    document.getElementById("artist").textContent =
+        "Local Music";
+    audio.play();
+});
+
+// Play / Pause
+audio.addEventListener("play", () => {
+    document.getElementById("playBtn").textContent =
+        "⏸ PAUSE";
+});
+
+audio.addEventListener("pause", () => {
+    document.getElementById("playBtn").textContent =
+        "▶ PLAY";
+});
+
+// Volume
+document.getElementById("volume")
+.addEventListener("input", function() {
+    audio.volume = this.value;
+});
+
+// Progress
+audio.addEventListener("timeupdate", function() {
+    if (!Number.isFinite(audio.duration)) return;
+
+    progress.value =
+        (audio.currentTime / audio.duration) * 100;
+
+    document.getElementById("current").textContent =
+        formatTime(audio.currentTime);
+
+    document.getElementById("duration").textContent =
+        formatTime(audio.duration);
+
+    updateLyrics();
+});
+
+progress.addEventListener("input", function() {
+    if (Number.isFinite(audio.duration)) {
+        audio.currentTime =
+            (this.value / 100) * audio.duration;
+    }
+});
+
+// Upload lirik
+document.getElementById("lyricFile")
+.addEventListener("change", function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+
+    reader.onload = function() {
+        parseLyrics(reader.result);
+    };
+
+    reader.readAsText(file);
+});
+
+// Membaca format LRC
+function parseLyrics(text) {
+    lyricData = [];
+
+    const lines = text.split(/\r?\n/);
+
+    lines.forEach(line => {
+        const match = line.match(
+            /^\[(\d{1,2}):(\d{2})(?:[.:](\d{1,3}))?\](.*)$/
+        );
+
+        if (match) {
+            const minute = Number(match[1]);
+            const second = Number(match[2]);
+            const fraction = match[3] || "0";
+
+            let milliseconds;
+
+            if (fraction.length === 1)
+                milliseconds = Number(fraction) * 100;
+            else if (fraction.length === 2)
+                milliseconds = Number(fraction) * 10;
+            else
+                milliseconds = Number(fraction);
+
+            const time = minute * 60 +
+                second + milliseconds / 1000;
+
+            lyricData.push({
+                time: time,
+                text: match[4].trim()
+            });
+        }
+    });
+
+    lyricData.sort((a,b) => a.time - b.time);
+
+    lyricsBox.innerHTML = "";
+
+    lyricData.forEach((lyric, index) => {
+        const p = document.createElement("p");
+        p.className = "lyric";
+        p.textContent = lyric.text || "...";
+        p.dataset.index = index;
+        lyricsBox.appendChild(p);
+    });
+
+    if (lyricData.length === 0) {
+        lyricsBox.textContent =
+            "Tidak ditemukan lirik berformat LRC.";
+    }
+}
+
+// Sinkronisasi lirik dengan musik
+function updateLyrics() {
+    if (!lyricData.length) return;
+
+    let activeIndex = -1;
+
+    for (let i = 0; i < lyricData.length; i++) {
+        if (audio.currentTime >= lyricData[i].time) {
+            activeIndex = i;
+        } else {
+            break;
+        }
+    }
+
+    document.querySelectorAll(".lyric")
+    .forEach((line, index) => {
+        line.classList.toggle(
+            "active", index === activeIndex
+        );
+    });
+
+    const active = document.querySelector(
+        ".lyric.active"
+    );
+
+    if (active) {
+        active.scrollIntoView({
+            behavior: "smooth",
+            block: "center"
+        });
+    }
+}
+</script>
+
+</body>
+</html>
